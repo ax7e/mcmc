@@ -86,6 +86,23 @@ library(Matrix)
     xstar
   }
 
+  BTnormlog2 <- function(x, mu, sigma=1){
+    if(x==0) {
+       u <- runif(1)
+       u <- 0.1
+       mu <- -400
+       z <- log(u)+pnorm(0, mu, sigma, log=T)
+       xstar <- qnorm(log(u)+pnorm(0, mu, sigma, log=T), mu, sigma, log=T)
+    } else{
+       u <- runif(1)
+       u <- 0.1
+       mu <- -400
+       xstar <- -qnorm(log(u)+pnorm(0, -mu, sigma, log=T), -mu, sigma, log=T)
+       z <- log(u)+pnorm(0, -mu, sigma, log=T)
+    }
+    xstar
+  }
+
 
 
   GameMCMC12 <- function (Y, X, year, country, covset, m=10000, burnin=5000, h=0.001){
@@ -193,32 +210,28 @@ library(Matrix)
       betac14 <- 0 ## intercept is put in the place of (-increase, not compliance, punish)
       
       p1=p2=p3=p4=p5=p6=p7=p8=p7=p8=p9=p10=p11=p12=p13=p14 <-0
-       p7rc =p7rnc =p12rc= p12rnc=p8rc =p9rnc= p14rnc =p10rnc <- 0
-       ## US reward given compliance
-       Xuc <- data.frame(1, p1*Xu7R, p2*Xu9R)  
-       print(dim(Xu7R))
-       print(dim(Xu9R))
-       print(dim(Xuc))
-       betaucr <- c(0, betau7, betau9)
-       print(as.matrix(betaucr))
-       newUusr <- as.matrix(Xuc)%*% as.matrix(betaucr)
-       ## US Punish given non-compliance
-       Xunc <- cbind(1, p1*Xu12P, p2*Xu14P)
-       betauncp <- c(0, betau12, betau14)
-       newUusp <- as.matrix(Xunc)%*% as.matrix(betauncp)
-       ## Recipient Comply given China increases
-       Xrc <- cbind(p7*Xr7C, p8, -p12*Xr12C)
-       betarc <- c(betar7, betar8, betar12)
-       newUrc <- as.matrix(Xrc)%*% as.matrix(betarc)
-       ## Recipient Not Comply
-       Xrnc <- cbind(p9*Xr9NC, p10, -p14*Xr14NC)
-       betarnc <- c(betar9, betar10, betar14)
-       newUrnc <- as.matrix(Xrnc)%*% as.matrix(betarnc)
-       ## China Increase
-       Xci <- cbind(p3*p7*Xc7, p3*p8*Xc8,
-                   p4*p11*Xc11, p4*p12*Xc12, -p6*p14)
-       betaci <- c(betac7, betac8, betac11, betac12, betac14)
-       newUci <- as.matrix(Xci)%*% as.matrix(betaci)
+      p7rc =p7rnc =p12rc= p12rnc=p8rc =p9rnc= p14rnc =p10rnc <- 0
+      ## US reward given compliance
+      Xuc <- data.frame(1, p1*Xu7R, p2*Xu9R)  
+      betaucr <- c(0, betau7, betau9)
+      newUusr <- as.matrix(Xuc)%*% as.matrix(betaucr)
+      ## US Punish given non-compliance
+      Xunc <- cbind(1, p1*Xu12P, p2*Xu14P)
+      betauncp <- c(0, betau12, betau14)
+      newUusp <- as.matrix(Xunc)%*% as.matrix(betauncp)
+      ## Recipient Comply given China increases
+      Xrc <- cbind(p7*Xr7C, p8, -p12*Xr12C)
+      betarc <- c(betar7, betar8, betar12)
+      newUrc <- as.matrix(Xrc)%*% as.matrix(betarc)
+      ## Recipient Not Comply
+      Xrnc <- cbind(p9*Xr9NC, p10, -p14*Xr14NC)
+      betarnc <- c(betar9, betar10, betar14)
+      newUrnc <- as.matrix(Xrnc)%*% as.matrix(betarnc)
+      ## China Increase
+      Xci <- cbind(p3*p7*Xc7, p3*p8*Xc8,
+                  p4*p11*Xc11, p4*p12*Xc12, -p6*p14)
+      betaci <- c(betac7, betac8, betac11, betac12, betac14)
+      newUci <- as.matrix(Xci)%*% as.matrix(betaci)
 
       ## create variance-covariance matrices of the beta prior
       ## assume beta priors are multivariate normal with zero mean
@@ -255,8 +268,9 @@ library(Matrix)
      
      #Tracking the process of MCMC simulation
      for(g in 1:(m+burnin)) { 
-       if ((g%%50 ==0)| g==m){
+       if ((g%%3 ==0)| g==m){
          cat("g=",g,"\n")
+         break
        }
 
        ################################################
@@ -270,7 +284,6 @@ library(Matrix)
        CutilityI <- newUci
        CIncrease.draw <- sapply(c(1:N),
                                function(r){BTnormlog(x=CIncrease[r], mu=CutilityI[r], sigma=1)})
-
        ## Update beta
        Bci1 <- forceSymmetric(pseudoinverse(t(Xci)%*%Xci +Bci0))      
        mu.ci <- Bci1%*%t(Xci)%*%((CIncrease.draw))
@@ -406,9 +419,9 @@ library(Matrix)
            
        
        ## predict p3, p5
-      Xr7Cc <- X[,rc1]
-      Xr12Cc <- X[,rc2]
-      Xr9NCc <- X[,rcn1]
+       Xr7Cc <- X[,rc1]
+       Xr12Cc <- X[,rc2]
+       Xr9NCc <- X[,rcn1]
        Xr14NCc <- X[,rcn2]
        Xrcc <- cbind(p7*Xr7Cc, p8, -p12*Xr12Cc)
        Xrcc <- as.matrix(Xrcc)
@@ -441,209 +454,6 @@ library(Matrix)
    return(list(betaUSReward= betaUSReward,
                betaUSPunish=betaUSPunish,betaRComply=betaRComply,
                betaRNComply=betaRNComply, betaCIncrease=betaCIncrease,
-               probabilityMedian=probabilityMedian, probabilitySD=probabilitySD))
-   }                                                      
-
-
-##### I will write another function to calculate the posterior probabilities and their percentage change compare to the probabilities when holding all things at the median. The nice thing is that I can get all the uncertainty including the probabilities and the percentage change!!!
-
-################################################################################
-
-ReducedMCMC <- function (Y, X, covset, m=10000, burnin=5000, h=0.001){
-      ######################
-      ## Arrange the data 
-      ######################
-
-      ## the sample size
-      N <- nrow(Y)
-      ## which covariates for which model?
-      rc1 <- covset[[1]]
-      rc2 <- covset[[2]]
-      ur1 <- covset[[3]]
-      ur2 <- covset[[4]]
-
-      k1 <- length(rc1)
-      k2 <- length(rc2)
-      k3 <- length(ur1)
-      k4 <- length(ur2)
-      #### set the covariate matrix for each model
-      ## US reward given Recipient comply
-      usr <- which(Y[,3]==1)
-      USReward <- Y[usr, 1]
-      Xu7R <- X[usr,ur1]  
-      Nusreward <- length(usr)
-   
-      ## US punish givan Recipient not comply
-      usp <- which(Y[,3]==0)
-      USPunish <- Y[usp, 2]
-      Xu12P <- X[usp,ur2]
-      Nuspunish <- length(usp)
-
-      ## Recipient comply or not given China increase
-      RComply <- Y[,3]
-      Xr7C <- X[,rc1]
-      Xr12C <- X[,rc2]
-  
-      ##################################################################
-      ## Create parameters of beta's and p's and/or their initial values
-      ##################################################################
-
-      ## initial values 
-      betar7 <- rep(0, k1)
-      betar12 <- rep(0, k2)
-
-      betau7 <- rep(0, k3)   
-      betau12 <- rep(0, k4)
-
-      betar8 <- 0
-      
-      p7=p12 <- 0
-      p8 <- 1-p7
-
-       ## US reward given compliance
-       Xuc <- data.frame(1, Xu7R)  
-       betaucr <- c(0, betau7)
-       newUusr <- as.matrix(Xuc)%*% as.matrix(betaucr)
-       ## US Punish given non-compliance
-       Xunc <- cbind(1, Xu12P)
-       betauncp <- c(0, betau12)
-       newUusp <- as.matrix(Xunc)%*% as.matrix(betauncp)
-       ## Recipient Comply given China increases
-       Xrc <- cbind(p7*Xr7C, p8, -p12*Xr12C)
-       betarc <- c(betar7, betar8, betar12)
-       newUrc <- as.matrix(Xrc)%*% as.matrix(betarc)
-
-  
-      ## create variance-covariance matrices of the beta prior
-      ## assume beta priors are multivariate normal with zero mean
-      ## and diagonal variance-covariance matrix
-      sr <- length(betaucr)
-      Busr0 <- diag(h, sr)
-
-      sp <- length(betauncp)
-      Busp0 <- diag(h, sp)
-
-      rc <- length(betarc)
-      Brc0 <- diag(h, rc)
-
-
-      ## Create containers for MCMC draws
-      betaUSReward <- matrix (NA, ncol=sr, nrow=m)
-      betaUSPunish <- matrix(NA, ncol=sp, nrow=m)
-      betaRComply <- matrix(NA, ncol=rc, nrow=m)
-    probabilityMedian <- matrix(NA, ncol=3, nrow=m)
-    probabilitySD<- matrix(NA, ncol=3, nrow=m)
-     #########################
-     ## loop begins
-     #########################
-     
-     #Tracking the process of MCMC simulation
-     for(g in 1:(m+burnin)) { 
-       if ((g%%50 ==0)| g==m){
-         cat("g=",g,"\n")
-       }
-
-       #############################################
-       ## Stage I
-       ## From the bottom of the game
-       ## and analyze the conditional choice of US
-       ############################################
-
-       ## Augment Data: US latent utility of awarding 
-       USutilityR <- newUusr 
-       USreward.draw <- sapply(c(1:Nusreward),
-                               function(r){BTnormlog(x=USReward[r], mu=USutilityR[r], sigma=1)})
-
-       ## Update beta
-       Xuc <- data.frame(1, Xu7R) 
-       Xuc <- as.matrix(Xuc)
-       Busr1 <-  forceSymmetric(pseudoinverse(t(Xuc)%*%Xuc +Busr0))  
-       mu.ucr <- Busr1%*%t(Xuc)%*%(USreward.draw)
-       betaucr <- mvrnorm(1, mu.ucr, Busr1)
-       ## update the utility and probability of p7
-       newUusr <- as.numeric(Xuc%*%betaucr)
-       p7s <- pnorm(newUusr)
-       p7sm <- median(p7s)
-       p7sd <- sd(p7s)
-       ##**********************************************
-       ## Augment Data: US latent utility of punishing
-       USutilityP <- newUusp
-       USpunish.draw <- sapply(c(1:Nuspunish),
-                               function(r){BTnormlog(x=USPunish[r], mu=USutilityP[r], sigma=1)})
-
-       ## Update beta
-       Xunc <- cbind(1, Xu12P)
-       Xunc <- as.matrix(Xunc)
-       Busp1 <-  forceSymmetric(pseudoinverse(t(Xunc)%*%Xunc +Busp0))  
-       mu.uncp <- Busp1%*%t(Xunc)%*%(USpunish.draw)
-       betauncp <- mvrnorm(1, mu.uncp, Busp1)
-       ## update the utility the probability of p12
-       newUusp <- as.numeric(Xunc%*%betauncp)
-       p12s <- pnorm(newUusp)
-       p12sm <- median(p12s)
-       p12sd <- sd(p12s)
-       ################################################
-       ## Stage II
-       ## Analyze the conditional choice of Recipients
-       ################################################
-       ## Augment Data: Recipient's latent utility of complying
-       RutilityC <- newUrc
-       Rcomply.draw <- sapply(c(1:N),
-                               function(r){BTnormlog(x=RComply[r], mu=RutilityC[r], sigma=1)})
-
-       ## calculate the probabilities
-       Xu7Rc <- X[,ur1]
-       Xucc <- data.frame(1, Xu7Rc)
-       Xucc <- as.matrix(Xucc)
-       newUusrc <- as.numeric(Xucc %*% betaucr)
-       p7 <- pnorm(newUusrc)
-       #p9 <- p7
-       p8 <- 1-p7
-       #p10 <- 1-p9
-       ## calculate the probabilities
-       Xu12Pc <- X[,ur2]
-       Xuncc <- cbind(1, Xu12Pc)
-       Xuncc <- as.matrix(Xuncc)
-       newUuspc <- as.numeric(Xuncc%*% betauncp)
-       p12 <- pnorm(newUuspc)
-       #p14 <- p12
-       #p11 <- 1-p12
-       #p13 <- 1-p14
-       
-       ## Update beta
-       Xrc <- cbind(p7*Xr7C, p8, -p12*Xr12C)
-       Xrc <- as.matrix(Xrc)
-       Brc1 <- forceSymmetric(pseudoinverse(t(Xrc)%*%Xrc +Brc0)  )
-       mu.urc <- Brc1%*%t(Xrc)%*%(Rcomply.draw)
-       betarc <-  mvrnorm(1, mu.urc, Brc1)
-       
-       ## get the updated utility and probability of p3
-       newUrc <- as.numeric(Xrc%*%betarc)
-       p3s <- pnorm(newUrc)
-       p3sm <- median(p3s)
-       p3sd <- sd(p3s)
-       
-       ## End of Loop #############
-
-       #######################
-       ## Save draws
-       #######################
-       if (g > burnin){
-           gg <- g-burnin
-           betaUSReward[gg,] <- as.vector(betaucr)
-           betaUSPunish[gg,] <- as.vector(betauncp)
-           betaRComply[gg,] <-  as.vector(betarc)
-           probmedia <- c(p3sm, p7sm, p12sm)
-           probabilityMedian[gg,] <- probmedia
-           probsd <- c(p3sd, p7sd, p12sd)
-           probabilitySD[gg,] <- probsd
-       }
-       }
-    #########################
-    ## Return the MCMC output
-    #########################
-   return(list(betaUSReward= betaUSReward,
-               betaUSPunish=betaUSPunish,betaRComply=betaRComply,
                probabilityMedian=probabilityMedian, probabilitySD=probabilitySD))
    }                                                      
 
