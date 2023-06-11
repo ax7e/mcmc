@@ -46,5 +46,5 @@ params <- list(Y=Y82, X=X7, year=year, country=country, covset=collistDA, burnin
 BTnormlog2(0, 1, 1)
 BTnormlog2(1, 1, 1)
 
-Model2 <- GameMCMC12(Y=Y82, X=X7, year=year, country=country, covset=collistDA, burnin=1000, m=10000, h=0.01)
-save(Model2, file="mcmcoutput/Model2.RData")
+Model2 <- GameMCMC12(Y=Y82, X=X7, year=year, country=country, covset=collistDA, burnin=50, m=300, h=0.01)
+save(Model2, file="out/Model2.RData")

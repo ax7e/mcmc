@@ -268,8 +268,10 @@ library(Matrix)
      
      #Tracking the process of MCMC simulation
      for(g in 1:(m+burnin)) { 
-       if ((g%%3 ==0)| g==m){
+       if (g%%10 ==0){
          cat("g=",g,"\n")
+       }
+       if (g==m){
          break
        }
 
